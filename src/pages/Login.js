@@ -91,7 +91,7 @@ function Login() {
 
           <div>
             <label htmlFor="password-login" className="block text-sm font-medium text-gray-700 mb-1">
-              Password
+              Password (6 characters minimum)
             </label>
             <input
               id="password-login"

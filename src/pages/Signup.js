@@ -84,7 +84,7 @@ function Signup() {
 
           <div>
             <label htmlFor="password-signup" className="block text-sm font-medium text-gray-700 mb-1">
-              Password
+              Password (6 characters minimum)
             </label>
             <input
               id="password-signup"
@@ -101,7 +101,7 @@ function Signup() {
 
           <div>
             <label htmlFor="confirm-password-signup" className="block text-sm font-medium text-gray-700 mb-1">
-              Confirm Password
+              Confirm Password (6 characters minimum)
             </label>
             <input
               id="confirm-password-signup"
