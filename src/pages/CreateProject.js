@@ -19,27 +19,26 @@ function CreateProject() {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
+const handleSubmit = async (e) => {
+  e.preventDefault();
+  const auth = getAuth();
+  const user = auth.currentUser;
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    const auth = getAuth();
-    const user = auth.currentUser;
+  if (!user) {
+    alert("You must be logged in to create a project.");
+    return;
+  }
 
-    if (!user) {
-      alert("You must be logged in to create a project.");
-      return;
-    }
-
-    setLoading(true);
+  setLoading(true);
 
   try {
-    const token = await getAuth().currentUser.getIdToken();
+    const token = await user.getIdToken();
 
     await axios.post('http://localhost:5000/api/projects', {
       ...formData,
       tags: formData.tags.split(',').map(t => t.trim()),
-       userName: user.displayName || user.email || 'Unnamed User' 
-    },{
+      userName: user.displayName || user.email || 'Unnamed User'
+    }, {
       headers: {
         Authorization: `Bearer ${token}`
       }
@@ -49,7 +48,7 @@ function CreateProject() {
     navigate('/my-projects');
   } catch (err) {
     console.error(err);
-    alert(' Failed to post project');
+    alert('Failed to post project');
   } finally {
     setLoading(false);
   }
