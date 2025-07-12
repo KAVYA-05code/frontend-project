@@ -16,6 +16,8 @@ function Profile() {
   const [error, setError] = useState('');
   const navigate = useNavigate();
 
+  const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
+
   useEffect(() => {
     if (user) {
       setDisplayName(user.displayName || '');
@@ -26,9 +28,9 @@ function Profile() {
           const config = { headers: { Authorization: `Bearer ${token}` } };
 
           const [myRes, likedRes, savedRes] = await Promise.all([
-            axios.get('http://localhost:5000/api/projects/mine', config),
-            axios.get(`http://localhost:5000/api/projects/liked?userId=${user.uid}`, config),
-            axios.get(`http://localhost:5000/api/projects/saved?userId=${user.uid}`, config),
+            axios.get(`${BACKEND_URL}/api/projects/mine`, config),
+            axios.get(`${BACKEND_URL}/api/projects/liked?userId=${user.uid}`, config),
+            axios.get(`${BACKEND_URL}/api/projects/saved?userId=${user.uid}`, config),
           ]);
 
           setMyPosts(myRes.data);
@@ -42,10 +44,35 @@ function Profile() {
 
       fetchData();
     }
-  }, [user]);
+  }, [user, BACKEND_URL]);
 
   if (loading) return <p className="text-center mt-10">Loading...</p>;
   if (!user) return <p className="text-center mt-10 text-red-500 font-semibold">Please log in to view your profile.</p>;
+
+  const handleUpdateDisplayName = async () => {
+    setUpdating(true);
+    try {
+      await updateProfile(user, { displayName });
+      setEditMode(false);
+    } catch (err) {
+      alert('Failed to update display name');
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  const renderPostCard = (post) => (
+    <div key={post._id} className="bg-white p-4 rounded shadow">
+      <h4 className="text-lg font-semibold">{post.title}</h4>
+      <p className="text-sm text-gray-600">{post.description?.slice(0, 100)}...</p>
+      <button
+        onClick={() => navigate(`/projects/${post._id}`)}
+        className="mt-2 text-sm text-indigo-600 hover:underline"
+      >
+        View Details
+      </button>
+    </div>
+  );
 
   return (
     <div className="p-6">
@@ -66,18 +93,7 @@ function Profile() {
                 className="border px-2 py-1 rounded"
               />
               <button
-                onClick={async () => {
-                  setUpdating(true);
-                  try {
-                    await updateProfile(user, { displayName });
-                    setEditMode(false);
-                    setDisplayName(user.displayName); 
-                  } catch (err) {
-                    alert('Failed to update display name');
-                  } finally {
-                    setUpdating(false);
-                  }
-                }}
+                onClick={handleUpdateDisplayName}
                 className="ml-2 text-sm text-green-600 hover:underline"
                 disabled={updating}
               >
@@ -86,14 +102,9 @@ function Profile() {
             </>
           ) : (
             <>
-              {user ? (
-                <p className="text-lg font-semibold">
-                  {user.displayName || 'Unnamed User'}
-                </p>
-              ) : (
-                <p>Loading...</p>
-              )}
-
+              <p className="text-lg font-semibold">
+                {user.displayName || 'Unnamed User'}
+              </p>
               <button
                 onClick={() => setEditMode(true)}
                 className="text-sm text-blue-600 hover:underline ml-2"
@@ -125,7 +136,8 @@ function Profile() {
           <p className="text-2xl text-green-500 font-bold">{savedPosts.length}</p>
         </div>
       </div>
-      <div className="bg-white p-4 rounded shadow text-center">
+
+      <div className="bg-white p-4 rounded shadow text-center mb-10">
         <h3 className="text-lg font-semibold text-gray-700">Favorites</h3>
         <button
           onClick={() => navigate('/favorites')}
@@ -134,7 +146,7 @@ function Profile() {
           View Favorites
         </button>
       </div>
-      
+
       {/* My Posts Preview */}
       <section className="mb-10">
         <h3 className="text-xl font-bold text-indigo-700 mb-4">My Posts</h3>
@@ -142,70 +154,31 @@ function Profile() {
           <p className="text-gray-500">You haven’t created any projects yet.</p>
         ) : (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {myPosts.map(post => (
-              <div key={post._id} className="bg-white p-4 rounded shadow">
-                <h4 className="text-lg font-semibold">{post.title}</h4>
-                <p className="text-sm text-gray-600">
-                  {post.description?.slice(0, 100)}...
-                </p>
-                <button
-                  onClick={() => navigate(`/projects/${post._id}`)}
-                  className="mt-2 text-sm text-indigo-600 hover:underline"
-                >
-                  View Details
-                </button>
-              </div>
-            ))}
+            {myPosts.map(renderPostCard)}
           </div>
         )}
       </section>
 
-      {/* Liked Posts Preview */}
+      {/* Liked Projects */}
       <section className="mb-10">
         <h3 className="text-xl font-bold text-pink-600 mb-4">Liked Projects</h3>
         {likedPosts.length === 0 ? (
           <p className="text-gray-500">You haven’t liked any projects yet.</p>
         ) : (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {likedPosts.map(post => (
-              <div key={post._id} className="bg-white p-4 rounded shadow">
-                <h4 className="text-lg font-semibold">{post.title}</h4>
-                <p className="text-sm text-gray-600">
-                  {post.description?.slice(0, 100)}...
-                </p>
-                <button
-                  onClick={() => navigate(`/projects/${post._id}`)}
-                  className="mt-2 text-sm text-indigo-600 hover:underline"
-                >
-                  View Details
-                </button>
-              </div>
-            ))}
+            {likedPosts.map(renderPostCard)}
           </div>
         )}
       </section>
 
-      {/* Saved Posts Preview */}
+      {/* Saved Projects */}
       <section>
         <h3 className="text-xl font-bold text-green-600 mb-4">Saved Projects</h3>
         {savedPosts.length === 0 ? (
           <p className="text-gray-500">You haven’t saved any projects yet.</p>
         ) : (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {savedPosts.map(post => (
-              <div key={post._id} className="bg-white p-4 rounded shadow">
-                <h4 className="text-lg font-semibold">{post.title}</h4>
-                <p className="text-sm text-gray-600">
-                  {post.description?.slice(0, 100)}...
-                </p>
-                <button
-                  onClick={() => navigate(`/projects/${post._id}`)}
-                  className="mt-2 text-sm text-indigo-600 hover:underline"
-                >
-                  View Details
-                </button>
-              </div>
-            ))}
+            {savedPosts.map(renderPostCard)}
           </div>
         )}
       </section>

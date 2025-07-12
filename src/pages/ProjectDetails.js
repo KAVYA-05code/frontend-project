@@ -11,13 +11,13 @@ function ProjectDetails() {
   const [project, setProject] = useState(null);
   const [isFavorited, setIsFavorited] = useState(false);
   const [newComment, setNewComment] = useState('');
+  const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 
   useEffect(() => {
     const fetchProject = async () => {
       try {
-        const res = await axios.get(`http://localhost:5000/api/projects/${projectId}`);
+        const res = await axios.get(`${BACKEND_URL}/api/projects/${projectId}`);
         setProject(res.data);
-
         if (user && res.data.favoritedBy?.includes(user.uid)) {
           setIsFavorited(true);
         }
@@ -27,16 +27,23 @@ function ProjectDetails() {
     };
 
     if (projectId) fetchProject();
-  }, [projectId, user]);
+  }, [projectId, user, BACKEND_URL]);
 
   const handleCommentSubmit = async () => {
     if (!newComment.trim()) return;
     try {
-      await axios.post(`http://localhost:5000/api/projects/${projectId}/comment`, {
-        userId: user.uid,
-        text: newComment,
-      });
-      const res = await axios.get(`http://localhost:5000/api/projects/${projectId}`);
+      const token = await user.getIdToken();
+      await axios.post(
+        `${BACKEND_URL}/api/projects/${projectId}/comment`,
+        {
+          userId: user.uid,
+          text: newComment,
+        },
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      const res = await axios.get(`${BACKEND_URL}/api/projects/${projectId}`);
       setProject(res.data);
       setNewComment('');
     } catch (err) {
@@ -46,10 +53,17 @@ function ProjectDetails() {
 
   const toggleFavorite = async () => {
     try {
-      await axios.put(`http://localhost:5000/api/projects/${projectId}/favorites`, {
-        userId: user.uid,
-      });
-      setIsFavorited(prev => !prev);
+      const token = await user.getIdToken();
+      await axios.put(
+        `${BACKEND_URL}/api/projects/${projectId}/favorites`,
+        {
+          userId: user.uid,
+        },
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      setIsFavorited((prev) => !prev);
     } catch (err) {
       console.error('Failed to toggle favorite', err);
     }
@@ -82,7 +96,9 @@ function ProjectDetails() {
         </div>
       )}
 
-      <div className="text-sm text-gray-500 mb-2">Posted by: {project.user}</div>
+      <div className="text-sm text-gray-500 mb-2">
+        Posted by: {project.userName || 'Unknown'}
+      </div>
 
       {user && (
         <FaHeart
@@ -103,19 +119,23 @@ function ProjectDetails() {
       ) : (
         <p className="text-sm text-gray-400 mt-2">No comments yet.</p>
       )}
-      
-      <textarea
-        value={newComment}
-        onChange={(e) => setNewComment(e.target.value)}
-        placeholder="Write a comment..."
-        className="mt-4 w-full border px-3 py-2 rounded"
-      />
-      <button
-        onClick={handleCommentSubmit}
-        className="mt-2 bg-indigo-600 text-white px-4 py-1 rounded hover:bg-indigo-700"
-      >
-        Submit Comment
-      </button>
+
+      {user && (
+        <>
+          <textarea
+            value={newComment}
+            onChange={(e) => setNewComment(e.target.value)}
+            placeholder="Write a comment..."
+            className="mt-4 w-full border px-3 py-2 rounded"
+          />
+          <button
+            onClick={handleCommentSubmit}
+            className="mt-2 bg-indigo-600 text-white px-4 py-1 rounded hover:bg-indigo-700"
+          >
+            Submit Comment
+          </button>
+        </>
+      )}
     </div>
   );
 }

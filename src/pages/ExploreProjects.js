@@ -18,26 +18,37 @@ function ExploreProjects() {
   const projectsPerPage = 9;
 
   const navigate = useNavigate();
+  const BASE_URL = process.env.REACT_APP_BACKEND_URL;
 
   useEffect(() => {
-    if (user) {
-      const fetchProjects = async () => {
-        try {
-          const res = await axios.get('http://localhost:5000/api/projects');
-          setProjects(res.data);
-        } catch (err) {
-          console.error('Failed to load projects', err);
-        }
-      };
-      fetchProjects();
-    }
-  }, [user]);
+    const fetchProjects = async () => {
+      try {
+        const res = await axios.get(`${BASE_URL}/api/projects`);
+        setProjects(res.data);
+      } catch (err) {
+        console.error('Failed to load projects', err);
+      }
+    };
+
+    if (user) fetchProjects();
+  }, [user, BASE_URL]);
+
+  const getAuthHeaders = async () => {
+    const token = await user.getIdToken();
+    return {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    };
+  };
 
   const toggleLike = async (projectId) => {
     try {
-      await axios.put(`http://localhost:5000/api/projects/${projectId}/like`, {
-        userId: user.uid,
-      });
+      await axios.put(
+        `${BASE_URL}/api/projects/${projectId}/like`,
+        { userId: user.uid },
+        await getAuthHeaders()
+      );
       setLikes((prev) => ({ ...prev, [projectId]: !prev[projectId] }));
     } catch (err) {
       console.error('Failed to toggle like:', err);
@@ -46,9 +57,11 @@ function ExploreProjects() {
 
   const toggleSave = async (projectId) => {
     try {
-      await axios.put(`http://localhost:5000/api/projects/${projectId}/save`, {
-        userId: user.uid,
-      });
+      await axios.put(
+        `${BASE_URL}/api/projects/${projectId}/save`,
+        { userId: user.uid },
+        await getAuthHeaders()
+      );
       setSaved((prev) => ({ ...prev, [projectId]: !prev[projectId] }));
     } catch (err) {
       console.error('Failed to toggle save:', err);
@@ -57,10 +70,11 @@ function ExploreProjects() {
 
   const rateProject = async (projectId, stars) => {
     try {
-      await axios.put(`http://localhost:5000/api/projects/${projectId}/rate`, {
-        userId: user.uid,
-        stars,
-      });
+      await axios.put(
+        `${BASE_URL}/api/projects/${projectId}/rate`,
+        { userId: user.uid, stars },
+        await getAuthHeaders()
+      );
       setRatings((prev) => ({ ...prev, [projectId]: stars }));
     } catch (err) {
       console.error('Failed to rate project:', err);
@@ -77,7 +91,7 @@ function ExploreProjects() {
       project.description?.toLowerCase().includes(searchQuery.toLowerCase());
 
     const matchTag = tagFilter === '' || project.tags?.includes(tagFilter);
-    const matchUser = userFilter === '' || project.user?.toLowerCase().includes(userFilter.toLowerCase());
+    const matchUser = userFilter === '' || project.userName?.toLowerCase().includes(userFilter.toLowerCase());
 
     return matchKeyword && matchTag && matchUser;
   });
@@ -91,7 +105,7 @@ function ExploreProjects() {
     <div className="px-4 py-12 bg-gray-50 min-h-screen">
       <h1 className="text-3xl font-bold text-center mb-10 text-indigo-800">Explore All Projects</h1>
 
-      {/*  Filters */}
+      {/* Filters */}
       <div className="mb-6 flex flex-col md:flex-row gap-4 justify-center items-center">
         <input
           type="text"
@@ -116,15 +130,14 @@ function ExploreProjects() {
         />
       </div>
 
-      {/*  Project Cards */}
+      {/* Project Cards */}
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
         {currentProjects.map(project => {
           const averageRating =
             project.ratings && project.ratings.length > 0
               ? (
-                project.ratings.reduce((sum, r) => sum + r.stars, 0) /
-                project.ratings.length
-              ).toFixed(1)
+                  project.ratings.reduce((sum, r) => sum + r.stars, 0) / project.ratings.length
+                ).toFixed(1)
               : 'No ratings';
 
           return (
@@ -140,11 +153,7 @@ function ExploreProjects() {
                 </div>
               )}
 
-              <p className="mt-2 text-sm text-gray-500">
-                Posted by: {project.userName || 'Unknown'}
-              </p>
-
-
+              <p className="mt-2 text-sm text-gray-500">Posted by: {project.userName || 'Unknown'}</p>
               <p className="text-sm text-yellow-600">⭐ Average Rating: {averageRating}</p>
 
               {project.githubLink && (
@@ -178,20 +187,18 @@ function ExploreProjects() {
                 ))}
               </div>
 
-
               <button
                 className="mt-2 ml-4 text-sm text-indigo-600 hover:underline"
                 onClick={() => navigate(`/projects/${project._id}`)}
               >
                 View Details
-
               </button>
             </div>
           );
         })}
       </div>
 
-      {/*  Pagination */}
+      {/* Pagination */}
       {totalPages > 1 && (
         <div className="flex justify-center items-center gap-2 mt-10">
           <button

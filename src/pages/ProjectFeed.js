@@ -1,23 +1,28 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { FaHeart, FaBookmark } from 'react-icons/fa';
-import { getAuth } from 'firebase/auth';
+import { getAuth, onAuthStateChanged } from 'firebase/auth';
 
 function ProjectFeed() {
   const [projects, setProjects] = useState([]);
   const [user, setUser] = useState(null);
+  const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 
   useEffect(() => {
     const auth = getAuth();
-    const unsubscribe = auth.onAuthStateChanged(currentUser => {
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       if (currentUser) setUser(currentUser);
     });
-    return unsubscribe;
+    return () => unsubscribe();
   }, []);
 
   const fetchProjects = async () => {
-    const res = await axios.get('http://localhost:5000/api/projects');
-    setProjects(res.data);
+    try {
+      const res = await axios.get(`${BACKEND_URL}/api/projects`);
+      setProjects(res.data);
+    } catch (err) {
+      console.error('Error fetching projects:', err);
+    }
   };
 
   useEffect(() => {
@@ -25,35 +30,64 @@ function ProjectFeed() {
   }, []);
 
   const toggleLike = async (id) => {
-    if (!user) return alert("Login first");
-    await axios.put(`http://localhost:5000/api/projects/${id}/like`, {
-      userId: user.uid,
-    });
-    fetchProjects();
+    if (!user) return alert('Login first');
+    try {
+      const token = await user.getIdToken();
+      await axios.put(
+        `${BACKEND_URL}/api/projects/${id}/like`,
+        { userId: user.uid },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      fetchProjects();
+    } catch (err) {
+      console.error('Like failed:', err);
+    }
   };
 
   const toggleSave = async (id) => {
-    if (!user) return alert("Login first");
-    await axios.put(`http://localhost:5000/api/projects/${id}/save`, {
-      userId: user.uid,
-    });
-    fetchProjects();
+    if (!user) return alert('Login first');
+    try {
+      const token = await user.getIdToken();
+      await axios.put(
+        `${BACKEND_URL}/api/projects/${id}/save`,
+        { userId: user.uid },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      fetchProjects();
+    } catch (err) {
+      console.error('Save failed:', err);
+    }
   };
 
   return (
-    <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
-      {projects.map(p => (
-        <div key={p._id} className="bg-white p-4 shadow rounded">
-          <h3 className="text-xl font-bold">{p.title}</h3>
-          <p>{p.description}</p>
-          <a href={p.githubLink} className="text-blue-600">GitHub</a>
+    <div className="p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {projects.map((p) => (
+        <div key={p._id} className="bg-white p-6 rounded shadow hover:shadow-lg transition duration-300">
+          <h3 className="text-xl font-bold text-indigo-700 mb-2">{p.title}</h3>
+          <p className="text-gray-700 mb-2 line-clamp-3">{p.description}</p>
+          {p.githubLink && (
+            <a
+              href={p.githubLink}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-blue-600 hover:underline"
+            >
+              🔗 GitHub
+            </a>
+          )}
 
-          <div className="mt-4 flex gap-4">
-            <button onClick={() => toggleLike(p._id)} className="text-red-500 hover:scale-110">
-              <FaHeart /> {p.likes?.length || 0}
+          <div className="mt-4 flex gap-6 items-center text-gray-600">
+            <button
+              onClick={() => toggleLike(p._id)}
+              className="flex items-center gap-1 hover:text-red-500"
+            >
+              <FaHeart className="text-lg" /> {p.likes?.length || 0}
             </button>
-            <button onClick={() => toggleSave(p._id)} className="text-blue-500 hover:scale-110">
-              <FaBookmark /> {p.saves?.length || 0}
+            <button
+              onClick={() => toggleSave(p._id)}
+              className="flex items-center gap-1 hover:text-blue-500"
+            >
+              <FaBookmark className="text-lg" /> {p.saves?.length || 0}
             </button>
           </div>
         </div>
