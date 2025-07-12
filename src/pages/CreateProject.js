@@ -34,15 +34,16 @@ const handleSubmit = async (e) => {
   try {
     const token = await user.getIdToken();
 
-    await axios.post('http://localhost:5000/api/projects', {
-      ...formData,
-      tags: formData.tags.split(',').map(t => t.trim()),
-      userName: user.displayName || user.email || 'Unnamed User'
-    }, {
-      headers: {
-        Authorization: `Bearer ${token}`
-      }
-    });
+    await axios.post('https://peer-project-hub-api.onrender.com/api/projects', {
+  ...formData,
+  tags: formData.tags.split(',').map(t => t.trim()),
+  userName: user.displayName || user.email || 'Unnamed User'
+}, {
+  headers: {
+    Authorization: `Bearer ${token}`
+  }
+});
+
 
     alert('Project posted successfully!');
     navigate('/my-projects');
