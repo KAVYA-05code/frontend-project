@@ -61,12 +61,10 @@ Connect repo on https://vercel.com
 Set environment variables on Vercel dashboard
 
 Deploy!
-
+ backend repo : https://github.com/KAVYA-05code/backend-platform
 📄 License
 This project is licensed under the MIT License.
 
 🧑‍💻 Author
 Kavya – GitHub Profile
-
-
 
